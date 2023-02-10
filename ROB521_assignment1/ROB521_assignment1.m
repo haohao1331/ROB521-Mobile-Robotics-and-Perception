@@ -30,8 +30,8 @@
 clear; close all; clc;
 
 % set random seed for repeatability if desired
-% rng(1);
-
+rng(1);
+%%
 % ==========================
 % Maze Generation
 % ==========================
@@ -75,14 +75,50 @@ edges = [];  % each row is should be an edge of the form [x1 y1 x2 y2]
 disp("Time to create PRM graph")
 tic;
 % ------insert your PRM generation code here-------
+max_dist = col^2 + row^2 + 10;
+n_nearest = 8;
 
+% generating milestones
+points_x = rand([nS 1]) * (col - 0.1 * 2) + 0.5 + 0.1;
+points_y = rand([nS 1]) * (row - 0.1 * 2) + 0.5 + 0.1;
 
+temp_milestones = [points_x points_y];
+n_points = length(temp_milestones);
 
+for i=1:n_points
+    if MinDist2Edges([temp_milestones(i, :)], map) >= 0.1
+        milestones = [milestones ; temp_milestones(i, :)];
+    end
+end
 
+n_points = length(milestones);
 
+% connecting milestones
+distances = zeros([n_points n_points]);
 
+for i=1:n_points
+    for j=1:n_points
+        diff = milestones(i, :) - milestones(j, :);
+        distances(i, j) = diff * diff';
+    end
+    distances(i, i) = max_dist;
+end
 
-
+for i=1:n_points
+    for j=1:n_nearest
+        [val, idx] = min(distances(i, :));
+        distances(i, idx) = max_dist;
+        distances(idx, i) = max_dist;
+        temp_edge = [milestones(i, :) milestones(idx, :)];
+        collide = 0;
+        for k=1:length(map)
+            collide = collide | EdgeCollision(temp_edge, map(k, :), 0.1);
+        end
+        if ~collide
+            edges = [edges ; temp_edge];
+        end
+    end
+end
 
 % ------end of your PRM generation code -------
 toc;
@@ -98,7 +134,7 @@ drawnow;
 
 print -dpng assignment1_q1.png
 
-
+%%
 % =================================================================
 % Question 2: Find the shortest path over the PRM graph
 % =================================================================
@@ -116,13 +152,56 @@ spath = []; % shortest path, stored as a milestone row index sequence
 
 % ------insert your shortest path finding algorithm here-------
 
+ms_index = linspace(1, n_points);
+distances = zeros([n_points n_points]);
+for i=1:length(edges)
+    p1 = edges(i, 1:2);
+    p2 = edges(i, 3:4);
+    idx1 = find(milestones(:, 1) == p1(1) & milestones(:, 2) == p1(2));
+    idx2 = find(milestones(:, 1) == p2(1) & milestones(:, 2) == p2(2));
+    diff = p1 - p2;
+    distances(idx1, idx2) = diff * diff';
+    distances(idx2, idx1) = diff * diff';
+end
+
+sqr_diff = (milestones - finish).^2;
+heuristic = sqrt(sqr_diff(:, 1) + sqr_diff(:, 2));
+
+visited = zeros(n_points);
+visited(1) = 1;
+
+score = zeros(n_points) + max_dist * 999;
+score(1) = 0;
+prev_pts = zeros(n_points);
+dead = [];
+queue = [1];
+
+while ~isempty(queue)
+    cur = queue(1);
+    queue(1) = [];
+    if cur == 2
+        break
+    end
+    next_pts = find(distances(cur, :) ~= 0);
+    cur_score = score(cur);
+    for pts=next_pts
+        s = cur_score + heuristic(pts);
+        if score(pts) > s
+            score(pts) = s;
+            prev_pts(pts) = cur;
+            queue = [queue pts];
+        end
+    end
+    queue = unique(queue);
+end
+
+cur = 2;
+while cur ~= 0
+    spath = [cur spath];
+    cur = prev_pts(cur);
+end
 
 
-
-  
- 
-    
-    
 % ------end of shortest path finding algorithm------- 
 toc;    
 
@@ -137,7 +216,7 @@ drawnow;
 
 print -dpng assingment1_q2.png
 
-
+%%
 % ================================================================
 % Question 3: find a faster way
 % ================================================================
