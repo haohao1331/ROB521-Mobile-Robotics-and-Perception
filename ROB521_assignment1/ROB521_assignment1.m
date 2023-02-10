@@ -152,7 +152,6 @@ spath = []; % shortest path, stored as a milestone row index sequence
 
 % ------insert your shortest path finding algorithm here-------
 
-ms_index = linspace(1, n_points);
 distances = zeros([n_points n_points]);
 for i=1:length(edges)
     p1 = edges(i, 1:2);
@@ -167,13 +166,9 @@ end
 sqr_diff = (milestones - finish).^2;
 heuristic = sqrt(sqr_diff(:, 1) + sqr_diff(:, 2));
 
-visited = zeros(n_points);
-visited(1) = 1;
-
-score = zeros(n_points) + max_dist * 999;
+score = zeros([n_points 1]) + max_dist * 999;
 score(1) = 0;
-prev_pts = zeros(n_points);
-dead = [];
+prev_pts = zeros([n_points 1]);
 queue = [1];
 
 while ~isempty(queue)
@@ -189,18 +184,24 @@ while ~isempty(queue)
         if score(pts) > s
             score(pts) = s;
             prev_pts(pts) = cur;
-            queue = [queue pts];
+            queue = [queue ; pts];
         end
     end
     queue = unique(queue);
+    queue = sortrows([score(queue) queue]);
+    queue = queue(:, 2);
+end
+
+if isempty(queue)
+    disp('failed to find path')
 end
 
 cur = 2;
-while cur ~= 0
+while cur ~= 1
     spath = [cur spath];
     cur = prev_pts(cur);
 end
-
+spath = [1 spath];
 
 % ------end of shortest path finding algorithm------- 
 toc;    
@@ -245,14 +246,7 @@ drawnow;
 fprintf("Attempting large %d X %d maze... \n", row, col);
 tic;        
 % ------insert your optimized algorithm here------
-
-
-
-
-
-
-
-
+nS = 300;  % number of samples to try for milestone creation
 
 % ------end of your optimized algorithm-------
 dt = toc;
