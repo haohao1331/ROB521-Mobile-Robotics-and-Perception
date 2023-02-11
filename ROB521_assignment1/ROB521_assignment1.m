@@ -229,13 +229,15 @@ print -dpng assingment1_q2.png
 % full marks)
 
 
-row = 25;
-col = 25;
+row = 160;
+col = 160;
 map = maze(row,col);
 start = [0.5, 1.0];
 finish = [col+0.5, row];
 milestones = [start; finish];  % each row is a point [x y] in feasible space
 edges = [];  % each row is should be an edge of the form [x1 y1 x2 y2]
+
+disp('plotting maze')
 
 h = figure(2);clf; hold on;
 plot(start(1), start(2),'go')
@@ -246,12 +248,130 @@ drawnow;
 fprintf("Attempting large %d X %d maze... \n", row, col);
 tic;        
 % ------insert your optimized algorithm here------
-nS = 300;  % number of samples to try for milestone creation
+max_dist = row + col;
+
+[points_x, points_y] = meshgrid(linspace(1, col, col)', linspace(1, row, row)');
+points_x = reshape(points_x, [], 1);
+points_y = reshape(points_y, [], 1);
+
+milestones = [milestones ; [points_x points_y]];
+n_points = length(milestones);
+
+% connecting milestones
+
+disp('generating edges')
+for i=1:col
+    for j=1:row
+        temp_edge1 = [i j i+1 j];
+        map_edge_idx = find(map(:, 1) == map(:, 3) & map(:, 3) == (i+0.5) & map(:, 2) < j & map(:, 4) > j)';
+        collide = 0;
+        for l=map_edge_idx
+            if EdgeCollision(temp_edge1, map(l, :), 0.1)
+                collide = 1;
+                break
+            end
+        end
+        if ~collide
+            edges = [edges ; temp_edge1];
+        end
+        
+        temp_edge2 = [i j i j+1];
+        map_edge_idx = find(map(:, 2) == map(:, 4) & map(:, 4) == (j+0.5) & map(:, 1) < i & map(:, 3) > i)';
+        collide = 0;
+        for l=map_edge_idx
+            if EdgeCollision(temp_edge2, map(l, :), 0.1)
+                collide = 1;
+                break
+            end
+        end
+        if ~collide
+            edges = [edges ; temp_edge2];
+        end
+    end
+    i
+end
+
+edges(length(edges), :) = [];
+edges = [edges ; [start 1 1] ; [row col finish]];
+
+
+% toc
+% plot(milestones(:,1),milestones(:,2),'m.');
+% if (~isempty(edges))
+%     line(edges(:,1:2:3)', edges(:,2:2:4)','Color','magenta') % line uses [x1 x2 y1 y2]
+% end
+% str = sprintf('Q1 - %d X %d Maze PRM', row, col);
+% title(str);
+% drawnow;
+disp('starting path search')
+spath = [];
+distances = zeros([n_points n_points]);
+for i=1:length(edges)
+    p1 = edges(i, 1:2);
+    p2 = edges(i, 3:4);
+    idx1 = find(milestones(:, 1) == p1(1) & milestones(:, 2) == p1(2));
+    idx2 = find(milestones(:, 1) == p2(1) & milestones(:, 2) == p2(2));
+    diff = p1 - p2;
+    distances(idx1, idx2) = diff(1) + diff(2);
+    distances(idx2, idx1) = diff(1) + diff(2);
+end
+
+diff = finish - milestones;
+heuristic = diff(:, 1) + diff(:, 2);
+
+score = zeros([n_points 1]) + max_dist * 999;
+score(1) = 0;
+prev_pts = zeros([n_points 1]);
+queue = [1];
+
+while ~isempty(queue)
+    cur = queue(1);
+    queue(1) = [];
+    if cur == 2
+        break
+    end
+    next_pts = find(distances(cur, :) ~= 0);
+    cur_score = score(cur);
+    for pts=next_pts
+        s = cur_score + heuristic(pts);
+        if score(pts) > s
+            score(pts) = s;
+            prev_pts(pts) = cur;
+            queue = [queue ; pts];
+        end
+    end
+    if isempty(queue)
+        break
+    end
+    queue = unique(queue);
+    queue = sortrows([score(queue) queue]);
+    queue = queue(:, 2);
+end
+disp('path search complete')
+if isempty(queue)
+    disp('failed to find path')
+    while cur ~= 1
+        spath = [cur spath];
+        cur = prev_pts(cur);
+    end
+    spath = [1 spath];
+else
+    while cur ~= 1
+        spath = [cur spath];
+        cur = prev_pts(cur);
+    end
+    spath = [1 spath];
+end
+
 
 % ------end of your optimized algorithm-------
 dt = toc;
-
-figure(2); hold on;
+disp('plotting optimal path')
+h = figure(2);clf; hold on;
+plot(start(1), start(2),'go')
+plot(finish(1), finish(2),'rx')
+show_maze(map,row,col,h); % Draws the maze
+drawnow;
 plot(milestones(:,1),milestones(:,2),'m.');
 if (~isempty(edges))
     line(edges(:,1:2:3)', edges(:,2:2:4)','Color','magenta')
