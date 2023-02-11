@@ -1,3 +1,41 @@
+# ROB521 Assignment 1
+
+## How to run the code
+
+`ROB521_assignment1.m` contains all of the code for this assignment, other files contained in this zip are trivially modified. The code is broken into 4 sections: 
+1. clear and set rng
+2. maze generation, question 1
+3. question 2
+4. question 3
+
+The code is run using MATLAB 2019b. Open MATLAB and run each section separately. 
+
+## Qeustion 1
+![assignment1_q1.png](assignment1_q1.png)
+
+There are 500 points generated before removing ones too close to a wall, with 8 nearest neighbors connected with an edge. 
+
+It is observed that generating the maze, generating the points, and generating the edges doesn't take much time. But detecting whether edges collide with a wall does take majority of the time. This is likely because for each edge, we are traversing all the walls that make up the maze and detecting collision, essentially an O(n^2) algorithm. 
+
+## Question 2
+![assignment1_q2.png](assingment1_q2.png)
+
+An A* search is implemented with euclidean distance as heuristic. The search itself also runs pretty quickly and the path found is quite good. The more points generated, the better the path becomes as more "short cuts" are available. Similarly, increasing the number of nearest neighbor edges also improve the solution, but at a heavy computational cost though. 
+
+## Question 3
+![assignment1_q3.png](assignment1_q3_40.png)
+
+For a maze size of 40x40, using random points isn't really feasible, as a very large number of points are needed to have a high likelihood of a path exists. Even for 25x25 maps, it takes a long time on my computer to detect edge collisions. 
+
+The main optimization done in this section is to exploit the fact that all walls of the maze are either vertical or horrizontal, and thus a grid of points can be generated instead of randomly. This drastically reduces the number of points required, and also make connecting the nearest edges a lot easier. With a grid of points, all edges are constrained to be either horizonal or vertical as well, which allows clever optimization to be done on detecting whether edges collide with a wall. Further, the manhattan distance is used as a heuristic. All edges have a length of one, which also speeds up computation as all calculations can be done with integers instead of floating points. 
+
+With these optimizations, the main bottleneck of the maze is no longer to detect edge collisions when finding edges, neither is the finding the best path. Based on several rounds of testing, it seems like constructing the maze and plotting the maze becomes the main bottleneck for working with larger mazes. I've also tried maze sizes of 80 and 160, results as follows:
+
+![assignment1_q3.png](assignment1_q3_80.png)
+![assignment1_q3.png](assignment1_q3_160.png)
+
+## Code
+```
 % ======
 % ROB521_assignment1.m
 % ======
@@ -437,3 +475,5 @@ title(str);
 
 print -dpng assignment1_q3.png
 
+
+```
