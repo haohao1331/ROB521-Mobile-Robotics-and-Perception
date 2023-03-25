@@ -39,8 +39,9 @@ rng(1);
 %    laser range limits: r_min_laser r_max_laser
 %    laser angle limits: phi_min_laser phi_max_laser
 %
-load gazebo.mat;
-
+% load gazebo.mat;
+load ROB521_assignment2_gazebo_data.mat
+%%
 % ======================================================
 % Question 1: code (noise-free) wheel odometry algorithm
 % ======================================================
@@ -53,7 +54,7 @@ load gazebo.mat;
 % like.
 
 % variables to store wheel odometry pose estimates
-numodom = size(t_odom,1);
+numodom = size(t_odom,1)
 x_odom = zeros(numodom,1);
 y_odom = zeros(numodom,1);
 theta_odom = zeros(numodom,1);
@@ -65,17 +66,12 @@ theta_odom(1) = theta_true(1);
 
 % ------insert your wheel odometry algorithm here-------
 for i=2:numodom
-
-
-
-
-
-
-
-
-
-
-
+    diff = t_odom(i) - t_odom(i-1); % get time difference
+    theta_odom(i) = wrapToPi(theta_odom(i-1) + diff * omega_odom(i-1)); % first calculate heading direction
+    
+    % update position
+    x_odom(i) = x_odom(i-1) + diff * v_odom(i-1) * cos(theta_odom(i-1));
+    y_odom(i) = y_odom(i-1) + diff * v_odom(i-1) * sin(theta_odom(i-1));
 end
 % ------end of your wheel odometry algorithm-------
 
@@ -132,7 +128,7 @@ ylabel('theta [rad]');
 title('heading error (odom-true)');
 print -dpng ass1_q1.png
 
-
+%%
 % =================================================================
 % Question 2: add noise to data and re-run wheel odometry algorithm
 % =================================================================
@@ -162,17 +158,12 @@ for n=1:100
     
     % ------insert your wheel odometry algorithm here-------
     for i=2:numodom
+        diff = t_odom(i) - t_odom(i-1); % get time difference
+        theta_odom(i) = wrapToPi(theta_odom(i-1) + diff * omega_odom(i-1)); % first calculate heading direction
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+        % update position
+        x_odom(i) = x_odom(i-1) + diff * v_odom(i-1) * cos(theta_odom(i-1));
+        y_odom(i) = y_odom(i-1) + diff * v_odom(i-1) * sin(theta_odom(i-1));
     end
     % ------end of your wheel odometry algorithm------- 
     
@@ -188,7 +179,7 @@ title('path');
 axis equal;
 print -dpng ass1_q2.png
 
-
+%%
 % ================================================================
 % Question 3: build a map from noisy and noise-free wheel odometry
 % ================================================================
@@ -239,37 +230,30 @@ for n=1:2
         theta_interp = interp1(t_interp,theta_true,t_laser);
         omega_interp = interp1(t_interp,omega_odom,t_laser);
     end   
+    
 
+    z = size(t_laser,1);
+    
+    x_points = zeros(z, npoints);
+    y_points = zeros(z, npoints);
+    
     % loop over laser scans
-    for i=1:size(t_laser,1);
-
+    for i=1:z % 989
+        if abs(omega_interp(i)) > 0.01
+            continue
+        end   
         % ------insert your point transformation algorithm here------
-        
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        for j=1:npoints % 640
+            x_points(i, j) = x_interp(i) + cos(theta_interp(i) + angles(j)) * (y_laser(i, j) - 0.1);
+            y_points(i, j) = y_interp(i) + sin(theta_interp(i) + angles(j)) * (y_laser(i, j) - 0.1);
+        end
         % ------end of your point transformation algorithm-------
+    end
+    
+    if n==1
+        plot(x_points(:), y_points(:), '.r');
+    else
+        plot(x_points(:), y_points(:), '.b');
     end
 end
 
